@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<meta charset="utf-8">
+<title>山人 - 乐人 - QQ音乐</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
+<link rel="stylesheet" href="css/stylesheets/index.css" />
+<link rel="stylesheet" type="text/css" href="css/stylesheets/style.css" media="all">
+<style>
+.touchmove{-webkit-transition:none 0 step-start;}
+#arrdown span{position:absolute;width:21px;height:20px;background-position:0 -54px;left:50%;top:50%;margin:-10px 0 0 -10px;-webkit-animation:start 1.8s infinite ease-in-out;background-image:url(img/icon.png?d=20141013105826)}
+</style>
+</head>
+<body>
+    <section class="wrap" id="wrap">
+        <!--内容都这里面-->
+    </section>
+    
+    <!--迷你导航-->
+    <ul class="mod_tag">
+        <li class="current"><span>1</span></li>
+        <li class=""><span>2</span></li>
+        <li><span>3</span></li>
+        <li><span>4</span></li>
+        <li><span>5</span></li>
+        <li><span>6</span></li>
+        <li><span>7</span></li>
+        <li><span>8</span></li>
+        <li><span>9</span></li>
+        <li><span>10</span></li>
+        <li><span>11</span></li>
+        <li><span>12</span></li>
+    </ul>
+    <div class="item_header">
+	    <h1 id="logo" class="logo hide">乐人，打造最巅峰的中国原创音乐人</h1>
+	    <div class="number hide">04期</div>
+	    <!--背景音乐 关闭加类off-->
+	<a href="javascript:;" class="icon_sound" id="btn_audio">背景音乐</a>
+	</div>
+    <!--加载提示-->
+    <div class="mod_loading" id="loading">
+        <div class="content">
+            <div class="progress"><span id="progress_bg" style="width:0;"></span></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+    <div class="item_footer">
+	    <!--分享和收藏-->
+	<a href="javascript:;" class="btn_share" style="display:">分享</a>
+	<a href="javascript:;" onclick="goSinger();return false;" class="btn_favorite">收藏全部歌曲</a>
+	    <!--向上滚动提示-->
+	    <div class="mod_start" id="arr"  style="z-index:9999999;">
+	        <span></span>
+	    </div>
+        
+      <div style="z-index:9999999; position:absolute;left:30%;margin-left:-18px;top:2px;width:36px;height:36px;overflow:hidden;text-align:center;background:#b13a00;-webkit-border-radius:20px;border-radius:20px" id="arrdown" >
+	        <span></span>
+	    </div>
+	</div>
+    <!--分享提示浮层，有可能在上，有可能在下-->
+    <div id="share_btn_tip" class="mod_share" style="display:block;right:10px;bottom:14px;">点击这里分享
+        <i id="arrow_top" style="display:block" class="top"></i>
+        <i style="display:block" id="arrow_bottom" class="bottom"></i>
+    </div>
+  
+    <script type="text/javascript">
+	/**
+	 * 分屏切换浏览组件
+	 * @param {string} 
+	 * @return 
+	 * @date 2014/4/23 星期三
+	 * @author rowanyang
+	 * 
+	 */
+	
+	function $(o) {
+		return document.querySelector(o);
+	}
+	function $$(o) {
+		return document.querySelectorAll(o);
+	}
+	
+	//触屏事件
+	var touchSlider = {
+	
+		init:function () {
+			this.touchInitPos = 0;//手指初始位置
+			this.startPos = 0;//移动开始的位置
+			this.totalDist = 0,//移动的总距离
+			this.deltaX1 = 0;//每次移动的正负
+			this.deltaX2 = 0;//每次移动的正负
+	
+			var self = this;
+			$('body').addEventListener('touchstart',function (e) {
+				self.touchstart(e);
+			},false);
+			$('body').addEventListener('touchmove',function (e) {
+				self.touchmove(e);
+			},false);
+			$('body').addEventListener('touchend',function (e) {
+				self.touchend(e);
+			},false);
+	
+			$('body').addEventListener('touchcancel',function (e) {
+				itemReset();
+			},false);
+		},
+		touchstart : function (e) {
+			if(e.touches.length !== 1){return;}//如果大于1个手指，则不处理
+			this.touchInitPos = e.touches[0].pageY; // 每次move的触点位置
+			this.deltaX1 = this.touchInitPos;//touchstart的时候的原始位置
+			this.startPos = 0;
+			this.startPosPrev = -displayHeight;
+			this.startPosNext = displayHeight;
+			this.hasPrev = !!$('#prev');
+			this.hasNext = !!$('#next');
+			//手指滑动的时候禁用掉动画
+			if (this.hasNext) {
+				$('#next').className+=' touchmove';
+			}
+			$('#current').className+=' touchmove';
+			if (this.hasPrev) {
+				$('#prev').className+=' touchmove';
+			}
+		},
+		touchmove : function (e) {
+			e.preventDefault();
+			if(e.touches.length !== 1){return;}
+	
+			var currentX = e.touches[0].pageY;
+			this.deltaX2 = currentX - this.deltaX1;//记录当次移动的偏移量
+			this.totalDist = this.startPos + currentX - this.touchInitPos;
+			var pos= '0,'+this.totalDist+'px';
+			$('#current').style.WebkitTransform='translate3d(' +  pos + ', 0)';
+			this.startPos = this.totalDist;
+			
+			
+			//处理上一张和下一张
+			if (this.totalDist<0) {//露出下一张
+				if (this.hasNext) {
+					this.totalDist2 = this.startPosNext + currentX - this.touchInitPos;
+					var pos2= '0,'+this.totalDist2+'px';
+					$('#next').style.WebkitTransform='translate3d(' +  pos2+ ', 0)';
+					this.startPosNext = this.totalDist2;
+				}
+			}else {//露出上一张
+				if (this.hasPrev) {
+					this.totalDist2 = this.startPosPrev + currentX - this.touchInitPos;
+					var pos2= '0,'+this.totalDist2+'px';
+					$('#prev').style.WebkitTransform='translate3d(' +  pos2+ ', 0)';
+					this.startPosPrev = this.totalDist2;
+				}
+			}
+	
+			this.touchInitPos = currentX;
+		},
+		touchend : function (e) {
+			if (this.hasPrev) {
+				$('#prev').className=$('#prev').className.replace(/touchmove/g,'');
+			}
+			$('#current').className=$('#current').className.replace(/touchmove/g,'');
+			if (this.hasNext) {
+				$('#next').className=$('#next').className.replace(/touchmove/g,'');
+			}
+			if(this.deltaX2<-15){
+				nextImg();
+			}else if(this.deltaX2 > 15){
+				prevImg();
+			}else{
+				this.restore();
+			}
+			this.deltaX2 = 0;
+		},
+		restore : function () {//touch未遂 复位
+			itemReset();
+		}
+	}
+	
+	//3个大图复位
+	function itemReset() {
+		$('#current').style.WebkitTransform='translate3d(0,0, 0)';
+		if ($('#prev')) {
+			$('#prev').style.WebkitTransform='translate3d(0,-'+displayHeight+'px, 0)';
+		}
+		if ($('#next')) {
+			$('#next').style.WebkitTransform='translate3d(0,'+displayHeight+'px, 0)';
+		}
+	
+	}
+	
+	
+	function prevImg() {
+		if (currentIndex > 0) {
+			currentIndex--;
+		}else {
+			itemReset();
+			return false;
+		}
+	
+		var nextIndex = currentIndex+1 > allItems-1 ? 0 : currentIndex+1;
+	
+		$('#current').style.WebkitTransform='translate3d(0,'+displayHeight+'px,0)';
+		if ($('#next')) {
+			$('#wrap').removeChild($('#next'));
+		}
+		$('#current').id='next';
+		$('#prev').style.WebkitTransform='translate3d(0,0,0)';
+		$('#prev').id='current';
+	
+	
+		setTimeout(function () {
+	//        $('#current').innerHTML=data[currentIndex];
+			if ($('.play')) {
+				$('.play').className=$('.play').className.replace('play','');
+			}
+			$('#current').className +=' play';
+		},400)
+	
+	
+		if (typeof (slideCallback) =='function') {
+			slideCallback(currentIndex)
+		}
+	
+		var prevIndex = currentIndex-1;
+		if (prevIndex < 0) {
+			prevIndex =  allItems-1;
+			return false;
+		}
+	
+		var addItem = document.createElement('div');
+		addItem.className='item item-'+prevIndex;
+		addItem.id='prev';
+		addItem.style.WebkitTransform='translate3d(0,-'+displayHeight+'px,0)';
+	
+		addItem.innerHTML=data[prevIndex];
+	
+		$('#wrap').insertBefore(addItem,$('#current'));
+	}
+	
+	function nextImg() {
+		if (currentIndex < allItems-1) {
+			currentIndex++;
+		}else {
+			itemReset();
+			return false;
+		}
+		
+	
+		var prevIndex = currentIndex===0 ? allItems-1 : currentIndex-1;
+	
+		$('#current').style.WebkitTransform='translate3d(0,-'+displayHeight+'px,0)';
+		if ($('#prev')) {
+			$('#wrap').removeChild($('#prev'));
+		}
+		$('#current').id='prev';
+		$('#next').style.WebkitTransform='translate3d(0,0,0)';
+		$('#next').id='current';
+	
+		setTimeout(function () {
+			//$('#current').innerHTML=data[currentIndex];
+			if ($('.play')) {
+			 $('.play').className=$('.play').className.replace('play','');
+			}
+			$('#current').className +=' play';
+		},400)
+	
+	
+		if (typeof (slideCallback) =='function') {
+			slideCallback(currentIndex)
+		}
+	
+		var nextIndex = currentIndex+1;
+		if (nextIndex >= allItems) {
+			$('#arr').style.display='none';
+			return false;
+		}
+	
+		var addItem = document.createElement('div');
+		addItem.className='item item-'+nextIndex;
+		addItem.id='next';
+		addItem.style.WebkitTransform='translate3d(0,'+displayHeight+'px,0)';
+		addItem.innerHTML=data[nextIndex];
+		$('#wrap').appendChild(addItem);
+	}
+	
+	
+	//界面尺寸发生变化重置
+	function initDisplay(e) {
+	
+		if ($('#wrap').offsetWidth != displayWidth) {//ios
+			displayWidth = $('#wrap').offsetWidth;
+			displayHeight = $('#wrap').offsetHeight;
+	
+			if ((/iPhone/).test(navigator.userAgent)) {
+				if (window.orientation==90||window.orientation==-90) {
+					displayHeight = window.screen.width-51;
+				}else {
+					displayHeight = window.screen.height-64;
+				}
+	
+				$('#wrap').style.height = displayHeight+'px';
+				if ($('#current img').offsetHeight/$('#current img').offsetWidth>=displayHeight/displayWidth) {
+					$('#current img').style.height=displayHeight+'px';
+				}else {
+					$('#current img').style.width=displayWidth+'px';
+				}
+	
+				setTimeout(function () {
+					window.scrollTo(0,1);
+				},1);
+			}
+			itemReset();
+		}else {//android
+			setTimeout(function () {
+				if ($('#wrap').offsetWidth != displayWidth) {
+					displayWidth = $('#wrap').offsetWidth;
+					displayHeight = $('#wrap').offsetHeight;
+					itemReset();
+				}else {
+					setTimeout(function () {
+						displayWidth = $('#wrap').offsetWidth;
+						displayHeight = $('#wrap').offsetHeight;
+						itemReset();
+					},500)
+				}
+			},300)
+		}
+	}
+	
+	
+	var currentIndex = 0;
+	var allItems=0; //总图片数据
+	
+	var displayWidth = document.documentElement.clientWidth; //图片区域最大宽度
+	var displayHeight = document.documentElement.clientHeight; //图片区域最大高度
+	
+	
+	
+	window.addEventListener('orientationchange resize', initDisplay, false);
+	document.addEventListener('touchmove', function (e) { e.preventDefault(); }, false);
+	
+	var share={
+		title:document.title,
+		link:location.href,
+		desc:'',
+		img:''
+	}
+	
+	
+	//以下为统计和分享
+	
+/*	function getParam(name,url) {
+		var r=new RegExp("(\\?|#|&)"+name+"=(.*?)(#|&|$)")
+		var m=(url||location.href).match(r);
+		return (m?m[2]:'');
+	}
+	
+	function loadUrl(url,callback,charset) {
+	
+		var isCSS = /\.css(?:\?|#|$)/i.test(url);
+		var node = document.createElement(isCSS ? "link" : "script")
+	
+		if (charset) {
+			node.charset = charset;
+		}
+	
+		node.onload = node.onerror = node.onreadystatechange = function() {
+			if (/^(?:loaded|complete|undefined)$/.test(node.readyState)) {
+	
+				// Ensure only run once and handle memory leak in IE
+				node.onload = node.onerror = node.onreadystatechange = null
+	
+				// Remove the script to reduce memory leak
+				if (!isCSS) {
+					document.body.removeChild(node)
+				}
+	
+				// Dereference the node
+				node = null
+	
+				callback && callback()
+			}
+		}
+	
+		if (isCSS) {
+			node.rel = "stylesheet"
+			node.href = url
+		} else {
+			node.async = true
+			node.src = url
+		}
+	
+		document.body.appendChild(node);
+	
+	}
+	
+	var tj = {
+		pv:function () {
+			this.checkping(function () {
+	
+				pgvMain("", {
+					virtualDomain: (window.tj_param && tj_param.virtualDomain)||'y.qq.com',
+					virtualURL: (window.tj_param && tj_param.virtualURL)||'',
+					ADTAG : (window.tj_param && tj_param.ADTAG)||'',
+					repeat: false, //同一页面内 是否允许重复上报
+					useRefUrl: true,
+					careSameDomainRef : true
+				});
+			})
+		},
+		sendClick:function (type) {
+			if(type){
+				this.checkping(function () {
+					pgvSendClick({
+						virtualDomain: (window.tj_param && tj_param.virtualDomain)||'y.qq.com',
+						virtualURL: (window.tj_param && tj_param.virtualURL)||'',
+						hottag : type.toUpperCase()
+					});
+				})
+			}
+		},
+		checkping:function (callback) {
+			if (typeof pgvMain =='function') {
+				callback && callback()
+			}else {
+				loadUrl('http://imgcache.qq.com/music/js/mobile/ping.js?max_age=31536000&ver=20131203',function () {
+					callback && callback();
+				})
+			}
+		}
+	}
+	
+	function weixinReady() {
+		if (!window.share) {
+			return;
+		}
+		initBtnShare();
+		//朋友圈
+		WeixinJSBridge.on("menu:share:timeline", function(e){
+			var data = {
+				img_url : share.img,
+				img_width : "173",
+				img_height : "173",
+				link : share.link+'?ADTAG=weixin',
+				desc : share.desc+' '+share.desc,
+				title : share.title+' '+share.desc
+			};
+			WeixinJSBridge.invoke("shareTimeline",data,function(res){WeixinJSBridge.log(res.err_msg)});
+		});
+		//微博 
+		WeixinJSBridge.on("menu:share:weibo",function(){
+			
+			WeixinJSBridge.invoke("shareWeibo",{
+				"content": share.title +' - '+share.desc,
+				"url" : share.link+'?ADTAG=weixin'
+			},function(res){
+				WeixinJSBridge.log(res.err_msg);
+			});
+	
+		});
+		//朋友
+		WeixinJSBridge.on('menu:share:appmessage', function(argv){
+			var data = {
+				img_url : share.img,
+				img_width : "173",
+				img_height : "173",
+				link : share.link+'?ADTAG=weixin',
+				desc : share.desc,
+				title : share.title
+			};
+			WeixinJSBridge.invoke("sendAppMessage", data, function (res) {
+				WeixinJSBridge.log(res.err_msg)
+			});
+	
+		});
+		if ($('#share_btn_tip')) {
+			$('#share_btn_tip').style.top='14px'
+			$('#arrow_top').style.display='block'
+		}
+	
+	}
+	
+	
+	function versionCompare( stra, strb ) {
+		var straArr = stra.split('.');
+		var strbArr = strb.split('.');
+		var maxLen = Math.max( straArr.length, strbArr.length );
+		var result, sa, sb;
+		for ( var i = 0; i < maxLen; i++ ) {
+			sa = ~~straArr[i];
+			sb = ~~strbArr[i];
+			if(sa > sb){
+			  result = 1;
+			}
+			else if(sa < sb){
+			  result = -1;
+			}
+			else {
+			  result = 0;
+			}
+			if ( result !== 0 ) {
+			  return result;
+			}
+		}
+		return result;
+	}
+	function musicappReady() {
+		initBtnShare();
+		var bridge = WebViewJavascriptBridge;
+		if (window.M) {
+			M.bridge=WebViewJavascriptBridge;
+		}
+		M.bridge.init();
+		
+		$('.btn_favorite').onclick = function () {
+			bridge.callHandler("8",{"k1":g_singerid}, function(res){});
+		};
+		
+		window.goSinger = function(){
+			bridge.callHandler("8",{"k1":g_singerid}, function(res){});
+		}
+		
+		var data = {
+			"appid" : "wx5aa333606550dfd5",
+			"img_url" : share.img,
+			"img_width" : "173",
+			"img_height" : "173",
+			"link" : share.link+'?ADTAG=musicapp',
+			"desc" : share.desc,
+			"title" : share.title
+		};
+		
+		
+		$('#btn_audio').ontouchstart = null;
+		
+		$('#btn_audio').ontouchstart=function () {
+			M.bridge.callHandler('23',{"k1":0,"k2": g_bgsongid ,"k3":"","k4":"","k5":"","k6":"","k7":""},function(){});
+		}
+		
+		if(navigator.userAgent.match(/iPhone|iPod|iPad/i)){
+	
+			$('#audio').pause();
+			
+	
+			var appVer=navigator.userAgent.match(/QQMusic\/([\d|\.]*)/);
+			if (appVer && versionCompare(appVer[1],'3.9.9')>=0) {
+				$('.btn_share').onclick = null;
+				$('.btn_share').ontouchstart=function (e) {
+					e.preventDefault();
+					bridge.callHandler('callshare', data, function(r){
+						if (r.code==0) {
+							tj.sendClick('APPPAGESHARE.'+(window.tj_param && tj_param.pagename)+'.TYPE'+r.sharetype);
+						}
+					});
+	
+					tj.sendClick('APPPAGESHARE.'+(window.tj_param && tj_param.pagename)+'.CLICK');
+				}
+	
+	
+	
+			}else {
+				$('#arrow_bottom').style.display='block';
+	
+				bridge.callHandler('share', data, function(){});
+				$('#share_btn_tip').style.display='block';
+				setTimeout(function(){
+					$('#share_btn_tip').style.display='none';
+				}, 3000);
+				bridge.callHandler('controlbar', {show:1}, function(){});
+				
+			}
+	
+		}else {
+	
+			data.desc = share.title;
+			data.title = share.desc;
+	
+			$('#arrow_top').style.display='block';
+			$('#share_btn_tip').style.top='14px'
+	
+			bridge.callHandler('share', data, function(){});
+			$('#share_btn_tip').style.display='block';
+			setTimeout(function(){
+				$('#share_btn_tip').style.display='none';
+			}, 3000);
+			
+		}
+		
+	
+	}
+	
+	//微信分享
+	if (typeof (WeixinJSBridge) =='undefined') {
+		document.addEventListener('WeixinJSBridgeReady', weixinReady);
+	}else {
+		weixinReady();
+	}
+	//music分享
+	if (typeof (WebViewJavascriptBridge) =='undefined') {
+		document.addEventListener('WebViewJavascriptBridgeReady', musicappReady);
+	}else {
+		musicappReady();
+	}
+	
+	
+	if (window.tj_param) {
+		if (navigator.userAgent.indexOf('QQMUSIC')>=0) {
+			tj_param.ADTAG = 'inMusicApp'
+		}else if (navigator.userAgent.indexOf('MicroMessenger')>=0 || getParam('mmkey')) {
+			tj_param.ADTAG = 'inWeixin'
+		}else if (navigator.userAgent.indexOf('QQ/')>=0) {
+			tj_param.ADTAG = 'inSQApp'
+		}else {
+			tj_param.ADTAG = 'inOther'
+		}
+	
+	}
+	
+	window.addEventListener('load',function () {
+		tj.pv();
+	},false);
+	
+	*/
+	</script>
+    
+    
+    <script type="text/javascript">
+     // data={songid , realImgURL, album, songname, singer, timestate}
+	 var playList = [
+		{
+			'artist' : '陈绮贞',
+			'musicName' : '旅行的意义',
+			'musicAlbum' : '<旅行的意义> 2004',
+			'musicURL' : 'http://file.dengo.org/music/cqz_lxdyy.mp3',
+			'avatarURL' : 'avatar/cqz.jpg',
+			'musicTime' : '245'
+		},
+		{
+			'artist' : '陈绮贞',
+			'musicName' : '华丽的冒险',
+			'musicAlbum' : '<太阳> 2005',
+			'musicURL' : 'http://file.dengo.org/music/cqz_hldmx.mp3',
+			'avatarURL' : 'avatar/cqz.jpg',
+			'musicTime' : '331'
+		},
+		{
+			'artist' : '陈奕迅',
+			'musicName' : '多少',
+			'musicAlbum' : '<上五楼的快活> 2010',
+			'musicURL' : 'http://file.dengo.org/music/cyx_ds.mp3',
+			'avatarURL' : 'avatar/cyx.jpg',
+			'musicTime' : '297'
+		},
+		{
+			'artist' : '陈奕迅',
+			'musicName' : '给你',
+			'musicAlbum' : '<上五楼的快活> 2010',
+			'musicURL' : 'http://file.dengo.org/music/cyx_gn.mp3',
+			'avatarURL' : 'avatar/cyx.jpg',
+			'musicTime' : '314'
+		},
+		{
+			'artist' : '梁静茹',
+			'musicName' : '花园',
+			'musicAlbum' : '<隋唐英雄传> 2003',
+			'musicURL' : 'http://file.dengo.org/music/ljr_hy.mp3',
+			'avatarURL' : 'avatar/ljr.jpg',
+			'musicTime' : '287'
+		},
+		{
+			'artist' : '梁静茹',
+			'musicName' : '最想环游的世界',
+			'musicAlbum' : '<恋爱的力量> 2003',
+			'musicURL' : 'http://file.dengo.org/music/ljr_zxhydsj.mp3',
+			'avatarURL' : 'avatar/ljr.jpg',
+			'musicTime' : '283'
+		},
+		{
+			'artist' : '王力宏',
+			'musicName' : '你不知道的事',
+			'musicAlbum' : '<火力全开> 2011',
+			'musicURL' : 'http://file.dengo.org/music/wlh_nbzdds.mp3',
+			'avatarURL' : 'avatar/wlh.jpg',
+			'musicTime' : '280'
+		},
+		{
+			'artist' : '王力宏',
+			'musicName' : '需要人陪',
+			'musicAlbum' : '<十八般武艺> 2010',
+			'musicURL' : 'http://file.dengo.org/music/wlh_xyrp.mp3',
+			'avatarURL' : 'avatar/wlh.jpg',
+			'musicTime' : '252'
+		},
+		{
+			'artist' : '张惠妹',
+			'musicName' : '记得',
+			'musicAlbum' : '<真实> 2001',
+			'musicURL' : 'http://file.dengo.org/music/zhm_jd.mp3',
+			'avatarURL' : 'avatar/zhm.jpg',
+			'musicTime' : '290'
+		},
+		{
+			'artist' : '张惠妹',
+			'musicName' : '我最亲爱的',
+			'musicAlbum' : '<你在看我吗> 2011',
+			'musicURL' : 'http://file.dengo.org/music/zhm_wzqad.mp3',
+			'avatarURL' : 'avatar/zhm.jpg',
+			'musicTime' : '285'
+		}
+	];
+	 
+	 
+
+	var tj_param={
+		virtualDomain:'y.qq.com',
+		ADTAG:'',
+		pagename:'yueren' //按钮通用统计用 标识页面名称 比如 apppageshare.yuetan.click
+	}
+	
+	var tj_param={
+		virtualDomain:'y.qq.com',
+		ADTAG:'',
+		pagename:'yueren' //按钮通用统计用 标识页面名称 比如 apppageshare.yuetan.click
+	}
+	
+	var share={
+		title:'《乐人》第四期：山人乐队',
+		link:'http://y.qq.com/m/yr/index_04.html?_wv=1',
+		desc:'打造最巅峰的中国原创音乐人',
+		img:'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/im_share.jpg?max_age=2592000'
+	}
+	
+	g_toplistpage = 10; // 榜单在第几页 如果是第一页则写0
+	
+	g_bgsongid = "8139059"; // 背景音乐歌曲id
+	
+	g_singerid = 13921;//歌手id
+	
+	//模板  data={songid , realImgURL, album, songname, singer, timestate}
+	var data = [
+		'<span></span>',
+        '<div class="box"><header class="mod_header"><h2>香格里拉</h2><a href="javascript:;" onclick="playSong(playList[0]);return false;"  class="icon_play">播放</a><!--播放中加了playin--><article class="content"><img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg2.jpg" alt="佳妮简介" /><div class="intro"><p>山人的成就，在于努力探索中国民族元素与现代音乐的嫁接，在放荡的交媾声中。他们的轻盈与节奏，树立了中国地下音乐唯美通俗的范本。</p></div></article></div>',
+        '<div class="box"><header class="mod_header"><h2>香格里拉</h2><a href="javascript:;" onclick="playSong(playList[1]);return false;" class="icon_play ">播放</a><!--播放中加了playin--></header><article class="content"><img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg3.jpg" alt="苏州河——给贾宏声" /><div class="intro"><h2></h2><p>山人：我们的音乐大部分都是主唱瞿子寒写的，香格里拉其实不是一个名词，它是一种内心真正幸福的状态，写这首歌的时候就是偶然有了回归的状态在想象中完成的。</p></div></article></div>',
+        '<div class="box"><header class="mod_header"><h2>三十年</h2><a href="javascript:;" onclick="playSong(playList[2]);return false;" class="icon_play">播放</a><!--播放中加了playin--></header><article class="content">    <img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg4.jpg" alt="晃动在眼皮上的阳光" />    <div class="intro">    <h2></h2>        <p>山人：山人乐队的成员都来自云贵山区地带，对山有着深厚的感情，山既蕴含着无尽宝藏，也代表了真诚和朴实。取这样一个名字是希望我们的音乐真诚朴实接地气。 </p>    </div></article></div>',
+        '<div class="box"><header class="mod_header"><h2>蚂蚱</h2><a href="javascript:;" onclick="playSong(playList[3]);return false;"  class="icon_play">播放</a><!--播放中加了playin--></header><article class="content">    <img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg5.jpg" alt="冥光" />    <div class="intro">    <h2></h2>        <p>山人：乐队每个人成长经历都很相似，有着对音乐一样的热爱，所以不管是做音乐和生活中都很容易达到默契。</p>    </div></article></div>',
+        '<div class="box"><header class="mod_header"><h2>姑娘的酒窝</h2><a href="javascript:;" onclick="playSong(playList[4]);return false;" class="icon_play">播放</a><!--播放中加了playin--></header><article class="content">    <img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg6.jpg" alt="白日梦游" />    <div class="intro">    <h2></h2>        <p>山人：我们小时候生活在民族聚居的地区，受到了民间音乐的滋养，希望能把这种自然的轻松快乐以音乐的形式带给大家。这种创意的灵感是来自于云南民间对生活的状态。我们想把这种感觉传给城市里的人。</p>    </div></article></div>',
+        '<div class="box"><header class="mod_header"><h2>左脚调</h2><a href="javascript:;" onclick="playSong(playList[5]);return false;" class="icon_play">播放</a><!--播放中加了playin--></header><article class="content">    <img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg7.jpg" alt="错觉" />    <div class="intro">    <h2></h2>        <p>山人：现在乐队的状态比较不错，没有了生活的压力，队员们在一起合作了十多年，排练时都比较有默契。现在每个人都有了自己的生活，平时除了排练各自也有其他爱好。</p>    </div></article></div>',
+        '<div class="box"><header class="mod_header"><h2>啦嗦咪</h2><a href="javascript:;" onclick="playSong(playList[6]);return false;"class="icon_play">播放</a><!--播放中加了playin--></header><article class="content">    <img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg8.jpg" alt="那年梦中" />    <div class="intro">    <h2></h2>        <p>山人：我们接下来的愿望也是将要去做的就是会花更多的时间去民间采风，尽我们能力去发现和保护那些快要失传的音乐。</p>    </div></article> </div>',
+        '<div class="box"><header class="mod_header"><h2>山人</h2><a href="javascript:;"  onclick="playSong(playList[7]);return false;" class="icon_play">播放</a><!--播放中加了playin--></header><article class="content">    <img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg9.jpg" alt="besame mucho" />    <div class="intro">        <p>山人：山人的成员是云南和贵州来的，有的童年是在山里呆过的，但是所有人的成年都是在城市里过的。山人比直接从民间出来唱歌的人不一样是因为它有一种回归的意思。 在城市里呆过，也享受过它的方便，它的多元的可能性，但是也感受到它的无奈，生活压力，污染，跟大自然完全失去联系的人才能完全理解山人的心情。 山人的方向不是从山里到城市里而是从城市里回到山里。做音乐要先离开，感受全世界不同的现代音乐风格 才能对云南民族音乐有一个承受的理解，才能把它现代化，才能做有价值的音乐尝试。</p>    </div></article></div>',
+        '<div class="box"><header class="mod_header"><h2>朝九晚五</h2><a href="javascript:;"  onclick="playSong(playList[8]);return false;"  class="icon_play">播放</a><!--播放中加了playin--></header><article class="content">    <div class="intro">    <h2>小编感悟：</h2>        <p>山人乐队他们在嬉笑怒骂中展现着民族的热情与智慧。脱离城市的束缚，深入到生活中用滑稽调侃的语气唱着城市百态。用最原生态的眼光审视我们城市里的虚伪与艰辛。我们上路吧，看看这美丽的山川，暂时逃离污染、逃离雾霾、逃离人际冷漠，来聆听一段不落俗套的山人摇滚乐。</p>    </div></article></div>',
+        '<div class="box"><header class="mod_header"><h2>独立原创排行榜</h2><a href="javascript:;"  onclick="playToplist();" class="icon_play">播放</a><!--播放中加了playin--></header><article class="content">    <div class="songs" onclick="playToplist();">        <ul></ul>    <a class="btn_more" href="javascript:;">收听更多榜单内容</a>    </div></article>    </div>',
+        '<div class="box"><header class="mod_header"><h2>往期节目</h2><a href="http://y.qq.com/m/yr/index_01.html" class="icon_play">播放</a><!--播放中加了playin-->    </header><article class="content">    	<div class="old">    		<ul>    			<li><a href="http://y.qq.com/m/yr/index_01.html"><img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/old_jiangming.jpg" alt=""/></a></li>    			<li><a href="http://y.qq.com/m/yr/index_02.html"><img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/old_jiani.jpg" alt=""/></a></li>    			<li><a href="http://y.qq.com/m/yr/index_03.html"><img src="http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/old_yuguo.jpg" alt=""/></a></li>    		</ul>    	</div><div class="worker">    <h3>幕后人员</h3>    <ul>        <li><span>统 筹</span>孙小腾</li>        <li><span>策 划</span>Eric_谢谢&nbsp;&nbsp;&nbsp;&nbsp;刘玉真&nbsp;&nbsp;&nbsp;&nbsp;张阿瑶 </li>        <li><span>采访、编辑</span>张阿瑶 </li>        <li><span>设 计</span>nnna</li>        <li><span>艺人联络</span>QQ : 2754162408&nbsp;&nbsp;&nbsp;&nbsp;30970840 </li>    </ul></div>    </article></div>'
+	]
+	
+	//初始化
+	var items='<div id="current" class="item item-0" style="-webkit-transform:translate3d(0,0,0)">'+data[0]+'</div><div id="next" class="item item-1" style="-webkit-transform:translate3d(0,100%,0)">'+data[1]+'</div>';
+	
+	allItems=data.length;
+	
+	/*逻辑部分*/
+	//预加载
+	function preloading() {
+		var imgurls=[
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg1.jpg',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg.png',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/icon.png'
+		];
+		var imgs=[];
+		var loaded=0;
+		for (var i=0; i<imgurls.length; i++) {
+			imgs[i]=new Image();
+			imgs[i].src=imgurls[i];
+		}
+		
+	}
+	
+	function pageinit() {
+		$('#wrap').innerHTML=items;
+		$('#arr').style.display='block';
+		setTimeout(function () {
+			$('#current').className +=' play';
+		},100)
+		touchSlider.init();
+		//$('.cover').innerHTML='<img src=" avatar/ljr.jpg"+ alt="">';
+	}
+	
+	//万一进度条卡那了 20秒后直接显示
+	var fallback=setTimeout(pageinit,3*1000);
+	
+	//进入页面loading
+	function loading() {
+		var imgurls=[
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg2.jpg',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg3.jpg',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg4.jpg',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg5.jpg',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg6.jpg',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg7.jpg',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg8.jpg',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg9.jpg',
+			'http://imgcache.gtimg.cn/mediastyle/mobile/event/20141008_yueren_shanren_band/img/bg10.jpg'
+		];
+		var imgs=[];
+		var loaded=0;
+		for (var i=0; i<imgurls.length; i++) {
+			imgs[i]=new Image();
+			imgs[i].src=imgurls[i];
+			imgs[i].onload=imgs[i].onerror=imgs[i].onabort=function () {
+				loaded++;
+				checkloaded();
+			}
+		}
+	
+		var timer = setTimeout(function () {
+			$('#loading').style.opacity=1;
+		} ,500);
+	
+		function checkloaded() {
+			$('#progress_bg').style.width=loaded/imgurls.length*100+'%';
+			if (loaded==imgurls.length) {
+				if (timer) {
+					clearTimeout(timer)
+				}
+				if (fallback) {
+					clearTimeout(fallback)
+				}
+				pageinit();
+				imgs=null;
+				preloading();
+				$('#loading').style.display="none";
+			}
+		}
+	}
+	
+	loading();
+	
+	var audioInit=false;
+	function slideCallback(index) {
+		console.info(index,audioInit);
+		
+		/*if(index>0){
+			document.getElementById('logo').style.display='block';
+		}else{
+			document.getElementById('logo').style.display='none';
+		}*/
+		
+		
+		if (index>0 && !audioInit) {
+			if (!M.bridge) {
+				$('#audio').play();
+				$('#btn_audio').ontouchstart=function (e) {
+					e.preventDefault();
+					
+					if (this.className=='icon_sound') {
+						$('#audio').pause();
+						this.className='icon_sound off'
+					}else {
+						$('#audio').play();
+						this.className='icon_sound'
+					}
+					return false;
+				}
+			}
+			$('#btn_audio').style.display='block'
+			audioInit=true;
+		}
+	
+	
+		/*if (index==0) {
+			$('.mod_control').className+=' firstScr';
+		}else {
+			$('.mod_control').className='mod_control';
+		}*/
+	
+	
+		if ($('.mod_tag .current')) {
+			$('.mod_tag .current').className='';
+		}
+		$$('.mod_tag li')[index].className='current';
+	
+	
+		
+	}
+	
+	var QQMusic = {
+		downAndroid : 'http://misc.wcd.qq.com/app?packageName=com.tencent.qqmusic&channelId=10000633',
+		downIphone : 'http://y.qq.com/m/tj_appstore.html?ADTAG=year10',
+		
+		open : function(url){
+			if(navigator.userAgent.match(/Android/)){
+				this.openAndroid(url);
+			}else if(navigator.userAgent.match(/iPhone|iPod/)){
+				this.openIphone(url);
+			}
+		},
+		
+		openAndroid : function(schemeUrl){
+
+			var iframe = document.createElement("iframe");
+			iframe.style.cssText = "width:1px;height:1px;position:fixed;top:0;left:0;"
+			var start = new Date().valueOf();
+			iframe.src = schemeUrl;
+			// 执行打开动作
+			document.body.appendChild(iframe);
+			
+			setTimeout(function(){
+				var end = new Date().valueOf();
+				if( (end - start) < 1550 ){
+					// 打开失败进入这个异常处理
+					window.location.href = QQMusic.downAndroid;
+				}
+			},1500);
+		},
+		
+		openIphone : function(schemeUrl){
+			var start = new Date().valueOf();
+			// 执行打开动作
+			window.location.href = schemeUrl;
+			
+			setTimeout(function(){
+				var end = new Date().valueOf();
+				if( (end - start) < 1550 ){
+					// 打开失败进入这个异常处理
+					setTimeout(function(){
+						window.location.href = QQMusic.downIphone;
+					},100);
+				}
+			},1500);
+		}
+	};
+	
+	
+/*	$('#audio').addEventListener('pause',function () {
+		$('#btn_audio').className='icon_sound off'
+	},false);
+	
+	$('#audio').addEventListener('playing',function () {
+		$('#btn_audio').className='icon_sound'
+	},false);
+	*/
+	$('.btn_favorite').onclick = function () {
+		tj.sendClick('act.year10.fav.y02');
+		if(navigator.userAgent.match(/Android/)){
+			QQMusic.open('androidqqmusic://from=html5page&mid=8&k1='+g_singerid+'&k2=&k3=5q2M5omL&k4=&k5=&k6=')
+		}else if(navigator.userAgent.match(/iPhone|iPod/)){
+			QQMusic.open('qqmusic://y.qq.com?from=html5page&mid=8&k1='+ g_singerid);
+		}
+		
+	};
+	
+	window.goSinger = function(){
+		if(navigator.userAgent.match(/Android/)){
+			QQMusic.open('androidqqmusic://from=html5page&mid=8&k1='+g_singerid+'&k2=&k3=5q2M5omL&k4=&k5=&k6=')
+		}else if(navigator.userAgent.match(/iPhone|iPod/)){
+			QQMusic.open('qqmusic://y.qq.com?from=html5page&mid=8&k1='+g_singerid );
+		}
+	};
+	
+	
+	function initBtnShare() {
+		$('.btn_share').style.display='block';
+		$('.btn_share').onclick = function () {
+	
+			$('#share_btn_tip').style.display='block';
+			setTimeout(function () {
+				$('#share_btn_tip').style.display='none';
+			},3000)
+	
+			tj.sendClick('act.year10.y01.clickshare');
+	
+			return false;
+		}
+	}
+	
+	
+	var M=M||{};
+	
+	function year_toggle(o) {
+		var o=o.parentNode
+		if (o.className.indexOf('year_open')>=0) {
+			o.className=o.className.replace('year_open','')
+		}else {
+			o.className+=' year_open'
+		}
+	}
+	
+	
+	function playAlbum(o) {
+/*		tj.sendClick('mobile.openalbum');
+		var id = o.getAttribute ('data-id')||getParam('albumid',o.href);
+		if (M.bridge) {
+			M.bridge.callHandler('6',{"k1":id,"k2":"http://y.qq.com/v3/static/album/"+id%100+"/album_"+id+"_0.json.z","k3":"5LiT6L6R" ,"k4":10002,"k5":"","k6":"","k7":""},function(){});
+			return false;
+		}else {
+			location.href='http://y.qq.com/w/album.html?albumid='+id
+		}*/
+	}
+	
+	function playSong(id){
+/*		if (M.bridge) {
+			M.bridge.callHandler('23',{"k1":0,"k2":""+id,"k3":"" ,"k4":"","k5":"","k6":"","k7":""},function(){});
+			return false;
+		}else {*/
+/*			if(/Android/g.test(navigator.userAgent)){
+				var ver = parseFloat(navigator.userAgent.split('Android')[1]);
+				if(ver < 3.0){
+					location.href='http://data.music.qq.com/playsong.html?songid='+id;
+				}else{
+					MPlayer.play(id);
+				}
+				
+			}else{
+				MPlayer.play(id);
+			}*/
+			//location.href='http://data.music.qq.com/playsong.html?songid='+id;
+		//}
+	  //location.href='http://data.music.qq.com/playsong.html?songid='+id;	
+	 
+	  MPlayer.play(id);
+		
+	}
+	
+	function playToplist(){
+/*		if (M.bridge) {
+			var date = new Date((new Date().valueOf())-7200000), month = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+			var day = parseInt(date.getDate());
+			if(day<=9){
+				day = '0'+day;
+			}
+			var dateString = date.getFullYear()+''+month[date.getMonth()]+''+day+''+(((date.getHours()<10)?'0':'')+date.getHours());
+			var iphoneTopId = 160;
+			var dataUrl = 'http://y.qq.com/v3/static/'+dateString+'/toplist/'+(iphoneTopId)%100+'/toplist_'+(iphoneTopId)+'_0.json.z';
+			
+			console.log(dataUrl);
+			M.bridge.callHandler('4',{"k1":160,"k2":dataUrl,"k3":"5o6S6KGM5qac" ,"k4":"10005","k5":"10005","k6":"106","k7":""},function(){});
+			return false;
+		}else {
+			location.href='http://y.qq.com/w/toplist.html?id=160&type=0';
+		}*/
+	}
+	
+	function formatMusic( data ){
+		var _arrSongAttr = ["mid", "msong", "msingerid", "msinger", "malbumid", "malbum",		
+				"msize", "minterval", "mstream", "mdownload", "msingertype",
+				"size320", "size128", "mrate", "gososo", "sizeape", "sizeflac", "sizeogg", "sizetac", "downstatus"];
+		var length = _arrSongAttr.length;
+		var songdata = data;
+		var _obj = {};
+		_obj.vid = 0;
+		
+		var arrMusic = songdata.split("|");
+		
+		var i = 0,
+			_length = Math.min(length, arrMusic.length);
+		for (i = 0; i < _length; i++) {
+			_obj[_arrSongAttr[i]] = arrMusic[i];
+		}
+		for (i = _length; i < length; i++) {
+			_obj[_arrSongAttr[i]] = "";
+		}
+		_obj.mtype = "qqmusic";
+		return _obj;
+	};
+	
+	function $(o) {
+		return document.querySelector(o);
+	}
+	function $$(o) {
+		return document.querySelectorAll(o);
+	}
+	
+	MPlayer = {
+
+		_player : null,
+		
+		conf : {},
+
+		play : function(data){
+			
+			var src = data.musicURL;
+			
+			if(MPlayer._player.src == src){
+				
+				MPlayer._player.play();
+				
+			}else{
+				
+				MPlayer._player.src = src;
+				
+				MPlayer._player.play();
+			}
+		
+			$('.cover').innerHTML='<img src="'+data.avatarURL+'" alt="'+data.musicAlbum+'">';
+		
+			$('.tag').innerHTML='<strong>'+data.musicName+'</strong><span class="artist">'+data.artist+'</span><span id="Musictime" class="album">'+data.musicTime+'</span>';	
+		
+			$('.playback').className+=' playing';
+		
+			$('.playback').onclick=function(){
+			
+				$('.playback').className='playback icon';
+			
+				MPlayer._player.pause();
+
+			}
+		
+		if(audio.duration!=""){
+			
+		    timer=setInterval(objtimer,1000)
+			
+			function objtimer(){
+		
+		    var currentSec=parseInt(audio.currentTime%60)<10 ?'0'+parseInt(audio.currentTime%60): parseInt(audio.currentTime%60);
+			
+			var ratio=audio.currentTime/audio.duration*100;
+
+		    document.getElementById("pace").style.width=ratio+"%";
+			
+			document.getElementById("Musictime").innerHTML=parseInt(audio.currentTime/60)+':'+currentSec;
+
+			}
+			
+		  }
+			
+		},
+		
+		pause : function(){
+			
+			MPlayer._player.pause();
+			
+			$('.playback').className='playback icon';
+			
+			$('.playback').onclick=function(){
+				
+			$('.playback').className='playback icon playing';
+			
+			MPlayer._player.play();
+			
+			}		
+			
+		},
+		
+		toggle : function(){
+			
+			var player = MPlayer._player;
+			
+			if( player.ended || player.paused ){
+				
+				if( player.ended ){
+					
+					player.currentTime = 0;
+				}
+				player.play();
+				
+			}else{
+				
+				player.pause();
+				
+			}
+		},
+		
+		init : function(conf){
+			//var audioDom = document.getElementById('audio');
+			
+			MPlayer.conf = conf||{};
+			
+			if( true ){
+				
+				var MP= MPlayer;
+				
+				  var oplayer=document.createElement("div");
+				 
+				  oplayer.setAttribute("id","player");
+				  
+				  document.body.appendChild(oplayer)||document.documentElement.appendChild(oplayer);
+				 
+				  document.getElementById("player").innerHTML=
+				   '<div class="cover"></div>'+
+		           '<div class="yctrl">'+
+			       '<div class="tag">'+
+				   '<strong class="conthide">Title</strong>'+
+				   '<span class="artist conthide">Artist</span>'+
+				   '<span id="Musictime" class="album conthide">Album</span>'+
+			       '</div>'+
+			       '<div class="control">'+
+				   '<div class="left">'+
+				   '<div class="rewind icon" style="dislpay:none; visibility:hidden;"></div>'+
+					'<div class="playback icon"></div>'+
+					'<div class="fastforward icon"style="dislpay:none; visibility:hidden;"> </div>'+
+				'</div>'+
+				'<div style="dislpay:none; visibility:hidden; " class="volume right">'+
+					'<div class="mute icon left"></div>'+
+					'<div class="slider left">'+
+						'<div class="pace"></div>'+
+					 '</div>'+
+				'</div>'+
+			 '</div>'+
+			'<div class="progress">'+
+				'<div class="slider" id="proslider">'+
+					'<div class="loaded"></div>'+
+					'<div class="pace" id="pace"></div>'+
+				'</div>'+
+				'<div style="dislpay:none; visibility:hidden;" class="timer left">0:00</div>'+
+				'<div class="right" style="dislpay:none; visibility:hidden; ">'+
+					'<div class="repeat icon"></div>'+
+					'<div class="shuffle icon"></div>'+
+				'</div>'+
+			'</div>'+
+		'</div>'+
+		'<audio src="http://ws.stream.qqmusic.qq.com/8139059.m4a?fromtag=0" preload id="audio"></audio>';
+		
+		var audio = document.getElementById('audio');
+		
+				audio.addEventListener('play',function(e){
+					
+					if(typeof MPlayer.conf.playCb == 'function'){
+						
+						MPlayer.conf.playCb(e);
+					}
+				}, false);
+
+				audio.addEventListener('ended',function(e){
+					
+					if(typeof MPlayer.conf.endedCb == 'function'){
+						
+						MPlayer.conf.endedCb(e);
+					}
+				}, false);
+
+				
+				audio.addEventListener('pause',function(e){
+					
+					if(typeof MPlayer.conf.pauseCb == 'function'){
+						
+						MPlayer.conf.pauseCb(e);
+					}
+				}, false);
+				
+				
+				audio.addEventListener('timeupdate',function(e){
+					
+					if(typeof MPlayer.conf.timeupdateCb == 'function'){
+						
+						MPlayer.conf.timeupdateCb(e);
+					}
+				}, false);
+				
+				MP._player = audio;
+			}
+		}
+	}
+	
+	document.addEventListener("DOMContentLoaded", function(){
+		
+		MPlayer.init({
+			
+			playCb : function(e){
+				
+			$('.playback').className='playback icon playing';
+			
+			$('.playback').onclick=function(){
+				
+			$('.playback').className='playback icon ';
+			
+			MPlayer._player.pause();
+			
+			}
+				
+			},
+			
+			pauseCb : function(e){
+				
+				$('.playback').className=' playback icon';
+		
+				$('.playback').onclick=function(){
+			
+				$('.playback').className='playback icon playing ';
+				
+				MPlayer._player.play();
+				
+                }
+			
+			},
+			
+			endedCb : function(e){
+				
+				audio.currentTime=0;
+				
+				MPlayer._player.play();
+					
+			},
+			
+			timeupdateCb : function(e){
+				
+				//var audio = e.currentTarget;
+				
+				document.getElementById("proslider").onclick=function(){
+					
+				adjustPorgress(this,e);
+				
+				function adjustPorgress(dom,e){
+					
+		   		var event = window.event || e;
+				
+				var progressX = event.clientX - dom.getBoundingClientRect().left;
+				
+				var progressScreenWidth=document.body.clientWidth||document.documentElement.clientWidth;	
+				
+				MPlayer._player.currentTime = parseInt(progressX/progressScreenWidth*audio.duration);
+				
+				MPlayer._player.play();
+				
+	  				}					
+				}	
+			},
+});
+		
+		(function(){
+			var temps = '<li><span><strong class="no special">1</strong>相信我</span>零点乐队</li><li><span><strong class="no special">2</strong>天亮不要叫醒我</span>羽果</li><li><span><strong class="no special">3</strong>东区那条巷子</span>袁惟仁</li><li><span><strong class="no special">4</strong>早安</span>刘瑞琦</li>';
+			if(g_toplistpage){
+				data[g_toplistpage] = data[g_toplistpage].replace('<ul></ul>', '<ul>'+temps+'</ul>');
+			}
+			window.MusicJsonCallback = function(json){
+				// item = '<li><span><strong class="no special">1</strong>一个人看小丸子</span>佳妮</li>';
+				window.toplistsonglist = json.songlist.splice(0,4);
+				window.topsonghtml = [];
+				for( var i=0, len = toplistsonglist.length ; i<len ; i++ ){
+					var item = toplistsonglist[i],
+					tempSong = formatMusic(item.s);
+					topsonghtml.push('<li><span><strong class="no special">'+(i+1)+'</strong>'+tempSong.msong.unescapeHTML().unescapeHTML()+'</span>'+tempSong.msinger.unescapeHTML().unescapeHTML()+'</li>');
+				}
+				topsonghtml = topsonghtml.join('');
+				if(topsonghtml && g_toplistpage){
+					data[g_toplistpage] = data[g_toplistpage].replace(/<ul>.*<\/ul>/, '<ul>'+topsonghtml+'</ul>');
+				}
+			};
+			var e = document.createElement("script");
+			e.setAttribute("type", "text/javascript");
+			e.setAttribute("charset","utf-8");
+			e.setAttribute("src","http://music.qq.com/newframe/static/toplist/json/h5/top/160.json");
+			document.getElementsByTagName("head")[0].appendChild(e);
+		})();
+		
+		(function(){
+			if(/android/ig.test(navigator.userAgent) && /V1_AND_SQ_/ig.test(navigator.userAgent) || /qq\//ig.test(navigator.userAgent) ){
+				var e = document.createElement("script");
+				e.setAttribute("type", "text/javascript");
+				e.setAttribute("charset","utf-8");
+				e.setAttribute("src","http://pub.idqqimg.com/qqmobile/qqapi.js?_bid=152");
+				document.getElementsByTagName("head")[0].appendChild(e);
+				e.onload = function(){
+					mqq.ui.setOnShareHandler(function(type){
+						mqq.ui.shareMessage({
+							title 		: share.title,
+							desc		: share.desc,
+							share_type	: type,
+							share_url	: share.link,
+							image_url	: share.img,
+							appid		: 100497308
+						}, function(ret){});
+					});
+				};
+			}
+		})();
+		
+	});
+	
+	String.prototype.unescapeHTML= function() {
+		var div = document.createElement('div');
+		div.innerHTML = this;
+		return div.innerText || div.textNode || '';
+	};
+	
+	$('#arr').onclick=function () {
+		nextImg();
+	}
+	
+	$('#arrdown').onclick=function(){
+		
+		prevImg();
+		}
+	</script>
+    
+</body>
+</html><!--[if !IE]>|xGv00|920ca00081bf23365dd9d66e446c7c5e<![endif]-->
